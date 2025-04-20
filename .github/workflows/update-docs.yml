@@ -9,6 +9,10 @@ jobs:
   update-docs:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    # --- 在这里添加权限 ---
+    permissions:
+      contents: write # <--- 授予写入仓库内容的权限 (用于 git push)
+    # --------------------
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
