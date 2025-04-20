@@ -1,0 +1,64 @@
+name: Update Documentation
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  update-docs:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+      - name: Create Documentation File
+        run: |
+          # Get PR info
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_DESCRIPTION="${{ github.event.pull_request.body }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          PR_MERGED_AT="${{ github.event.pull_request.merged_at }}"
+          
+          # Create directory if it doesn't exist
+          mkdir -p docs
+          
+          # Create the documentation file
+          cat > "docs/pull_request_${PR_NUMBER}.md" << EOF
+          # Pull Request #${PR_NUMBER}: ${PR_TITLE}
+          
+          **Author:** ${PR_AUTHOR}
+          **Merged:** ${PR_MERGED_AT}
+          
+          ## Description
+          
+          ${PR_DESCRIPTION}
+          
+          [View Pull Request](https://github.com/${{ github.repository }}/pull/${PR_NUMBER})
+          EOF
+          
+          # Update main README.md with link to the new doc
+          if grep -q "## Documentation Links" README.md; then
+            # If section exists, add a new link
+            sed -i "/## Documentation Links/a - [PR #${PR_NUMBER}: ${PR_TITLE}](docs/pull_request_${PR_NUMBER}.md)" README.md
+          else
+            # If section doesn't exist, create it
+            cat >> README.md << EOF
+          
+          ## Documentation Links
+          - [PR #${PR_NUMBER}: ${PR_TITLE}](docs/pull_request_${PR_NUMBER}.md)
+          EOF
+          fi
+      
+      - name: Commit and Push Changes
+        run: |
+          git add docs/pull_request_${{ github.event.pull_request.number }}.md README.md
+          git commit -m "Add documentation for PR #${{ github.event.pull_request.number }}"
+          git push
